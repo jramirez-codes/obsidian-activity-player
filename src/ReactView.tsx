@@ -51,22 +51,22 @@ export const ReactView = ({ content, fileName }: ReactViewProps) => {
     let activityId = 0;
     let activities: Activity[] = [];
     let hasPrimeActivity = false;
-    const hasActivityRegex = new RegExp(/^ *- *\[[\ |x|X]\]/gm)
-    const hasCompletedActivityRegex = new RegExp(/^ *- *\[[x|X]\]/gm)
+    const hasActivityRegex = new RegExp(/^ *[\-*] *\[[ x|X]\]/gm)
+    const hasCompletedActivityRegex = new RegExp(/^ *[\-*] *\[[x|X]\]/gm)
     const lines = content.split('\n')
     for (const rawLine of lines) {
       if (!hasActivity && rawLine.startsWith('# Activity')) {
         hasActivity = true;
       }
       else if (hasActivity) {
-        const line = rawLine.replace(/[^a-zA-Z0-9 \-\[\]]/g, '');
-        const testLine = hasActivityRegex.test(line);
+        // const line = rawLine.replace(/[^a-zA-Z0-9 \-\[\]]/g, '');
+        const testLine = rawLine.match(hasActivityRegex);
         // Is Valid Activity
         if (testLine) {
           // Parse Out Fields
-          const completed = hasCompletedActivityRegex.test(line);
-          const name = line.replace("- ", "").replace("[x]", "").replace("[ ]", "").trim();
-          let duration = parseDuration(line);
+          const completed = rawLine.match(hasCompletedActivityRegex);
+          const name = rawLine.replace(hasActivityRegex, '').trim();
+          let duration = parseDuration(rawLine);
           if (duration) {
             duration += Date.now();
           }
@@ -81,15 +81,15 @@ export const ReactView = ({ content, fileName }: ReactViewProps) => {
             id: activityId.toString(),
             name: name,
             duration: duration,
-            completed: completed
+            completed: completed ? true : false
           });
           activityId++;
         }
-        else if (line === '') {
+        else if (rawLine === '') {
           return activities
         }
         else {
-          console.log("Invalid Activity: " + line, testLine)
+          console.log("Invalid Activity: " + rawLine, testLine)
         }
       }
     }
