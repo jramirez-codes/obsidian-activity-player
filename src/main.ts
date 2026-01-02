@@ -1,99 +1,158 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+import { Plugin, WorkspaceLeaf, ItemView, MarkdownView, TFile } from 'obsidian';
+import { createRoot, Root } from 'react-dom/client';
+import * as React from 'react';
+import { ReactView } from './ReactView';
 
-// Remember to rename these classes and interfaces!
+const VIEW_TYPE_REACT = 'react-view';
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+class MyReactView extends ItemView {
+  root: Root | null = null;
+  currentContent: string | null = null;
+  currentFileName: string | null = null;
 
-	async onload() {
-		await this.loadSettings();
+  constructor(leaf: WorkspaceLeaf) {
+    super(leaf);
+  }
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
+  getViewType() {
+    return VIEW_TYPE_REACT;
+  }
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
+  getDisplayText() {
+    return 'React View';
+  }
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+  getIcon() {
+    return 'document-text';
+  }
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-				return false;
-			}
-		});
+  async onOpen() {
+    const container = this.contentEl;
+    container.empty();
+    // Create a wrapper div for React
+    const rootEl = container.createDiv();
+    this.root = createRoot(rootEl);
+    this.renderReact();
+  }
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+  async onClose() {
+    this.root?.unmount();
+  }
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			new Notice("Click");
-		});
+  updateContent(content: string | null, fileName: string | null) {
+    this.currentContent = content;
+    this.currentFileName = fileName;
+    this.renderReact();
+  }
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-
-	}
-
-	onunload() {
-	}
-
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
+  private renderReact() {
+    this.root?.render(
+      React.createElement(ReactView, {
+        content: this.currentContent,
+        fileName: this.currentFileName
+      })
+    );
+  }
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
+export default class MyPlugin extends Plugin {
+  async onload() {
+    this.registerView(
+      VIEW_TYPE_REACT,
+      (leaf) => new MyReactView(leaf)
+    );
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
+    this.addRibbonIcon('rocket', 'Open React View', () => {
+      this.activateView();
+    });
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
+    // Event listener for file switching
+    this.registerEvent(
+      this.app.workspace.on('active-leaf-change', async (leaf) => {
+        if (leaf && leaf.view instanceof MarkdownView) {
+          // New file is active
+          if (leaf.view.file) {
+            this.updateViewFromFile(leaf.view.file);
+          }
+        }
+      })
+    );
+
+    // Event listener for content changes (Live Update)
+    this.registerEvent(
+      this.app.workspace.on('editor-change', async (editor, view) => {
+        if (view instanceof MarkdownView) {
+          const content = editor.getValue();
+          this.updateViewWithContent(content, view.file?.basename || 'Untitled');
+        }
+      })
+    );
+  }
+
+  async updateViewFromFile(file: TFile) {
+    try {
+      const content = await this.app.vault.read(file);
+      this.updateViewWithContent(content, file.basename);
+    } catch (e) {
+      console.error("Failed to read file", e);
+    }
+  }
+
+  updateViewWithContent(content: string, basename: string) {
+    const view = this.getReactView();
+    if (view) {
+      view.updateContent(content, basename);
+    }
+  }
+
+  getReactView(): MyReactView | null {
+    const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_REACT);
+    // Safety check for empty array or undefined index access
+    if (leaves && leaves.length > 0) {
+      const leaf = leaves[0];
+      if (leaf && leaf.view instanceof MyReactView) {
+        return leaf.view;
+      }
+    }
+    return null;
+  }
+
+  async activateView() {
+    const { workspace } = this.app;
+    let leaf: WorkspaceLeaf | null = null;
+    const leaves = workspace.getLeavesOfType(VIEW_TYPE_REACT);
+
+    if (leaves && leaves.length > 0) {
+      const foundLeaf = leaves[0];
+      if (foundLeaf) {
+        leaf = foundLeaf;
+      }
+    } else {
+      const rightLeaf = workspace.getRightLeaf(false);
+      if (rightLeaf) {
+        leaf = rightLeaf;
+      } else {
+        // Fallback
+        leaf = workspace.getLeaf(true);
+      }
+
+      if (leaf) {
+        await leaf.setViewState({ type: VIEW_TYPE_REACT, active: true });
+      }
+    }
+
+    if (leaf) {
+      workspace.revealLeaf(leaf);
+    }
+
+    // Initial fetch from active view
+    const activeView = workspace.getActiveViewOfType(MarkdownView);
+    if (activeView) {
+      // Use editor value for most up to date content
+      this.updateViewWithContent(activeView.editor.getValue(), activeView.file?.basename || 'Untitled');
+    }
+  }
+
+  onunload() {
+  }
 }
