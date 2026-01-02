@@ -178,58 +178,6 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
             ) : (
               <>
                 {/* Header */}
-                <div className="timer-progress-bar-container" style={{ position: 'relative' }}>
-                  {activities[primeIdx]?.duration && (
-                    <div style={{ width: '100%', height: '100%', position: 'absolute', zIndex: 10, top: 0 }}>
-                      <div
-                        className="timer-progress-bar"
-                        style={{ width: (timeLeft / activities[primeIdx].duration) * 100 + "%" }}
-                      />
-                    </div>
-                  )}
-                  <div style={{ padding: 10, zIndex: 1000, position: 'relative', display: 'flex', justifyContent: 'space-between' }}>
-                    {activityComplete && (
-                      <button onClick={handleNextActivity}>Next Activity ({primeIdx + 1 + "/" + (activities.length)})</button>
-                    )}
-                    {timeLeft === 0 && activities[primeIdx]?.duration && !activityComplete && (
-                      <button onClick={() => {
-                        // @ts-ignore
-                        setActivityEndTime(Date.now() + activities[primeIdx].duration);
-                        setIsPaused(false);
-                      }}>Start Activity</button>
-                    )}
-                    {timeLeft > 0 && (
-                      <button onClick={() => {
-                        setIsPaused(e => {
-                          if (e) {
-                            setActivityEndTime(Date.now() + timeLeft);
-                          }
-                          return !e
-                        })
-                      }} >
-                        {formatTime(timeLeft)}
-                      </button>
-                    )}
-                    {timeLeft > 0 && activities[primeIdx]?.duration && (
-                      <button onClick={() => {
-                        setIsPaused(e => {
-                          if (e) {
-                            setActivityEndTime(Date.now() + timeLeft);
-                          }
-                          return !e
-                        })
-                      }}>{isPaused ? (
-                        <>
-                          <Play size="sm" />
-                        </>
-                      ) : (
-                        <>
-                          <Pause size="sm" />
-                        </>
-                      )}</button>
-                    )}
-                  </div>
-                </div>
                 <div className="activity-nav-container">
                   <div className="activity-nav-item">
                     {prevActivity && (
@@ -239,10 +187,14 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
                       </>
                     )}
                   </div>
-                  <div className="activity-nav-item next">
+                  <div className="activity-nav-item next" onClick={() => {
+                    if (activityComplete) {
+                      handleNextActivity()
+                    }
+                  }} >
                     {nextActivity && (
                       <>
-                        <span className="activity-nav-label">Next</span>
+                        <span className="activity-nav-label">Next ({primeIdx + 1 + "/" + (activities.length)})</span>
                         <span className="activity-nav-name">{nextActivity.name}</span>
                       </>
                     )}
@@ -255,6 +207,58 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
                       <h1 className="timer-activity-name">{activities[primeIdx].name}</h1>
                     </div>
                   )}
+                </div>
+                {/* Footer */}
+                <div style={{ position: 'fixed', bottom: 0, left: 0, padding: 10, width: '100%', marginBottom: 20 }}>
+                  <div className="timer-progress-bar-container">
+                    {activities[primeIdx]?.duration && (
+                      <div style={{ width: '100%', height: '100%', position: 'absolute', zIndex: 10, top: 0 }}>
+                        <div
+                          className="timer-progress-bar"
+                          style={{ width: (timeLeft / activities[primeIdx].duration) * 100 + "%" }}
+                        />
+                      </div>
+                    )}
+                    <div style={{ padding: 10, zIndex: 1000, position: 'relative', display: 'flex', justifyContent: 'space-between' }}>
+                      {timeLeft === 0 && activities[primeIdx]?.duration && !activityComplete && (
+                        <button onClick={() => {
+                          // @ts-ignore
+                          setActivityEndTime(Date.now() + activities[primeIdx].duration);
+                          setIsPaused(false);
+                        }}>Start Activity</button>
+                      )}
+                      {timeLeft > 0 && (
+                        <button onClick={() => {
+                          setIsPaused(e => {
+                            if (e) {
+                              setActivityEndTime(Date.now() + timeLeft);
+                            }
+                            return !e
+                          })
+                        }} >
+                          {formatTime(timeLeft)}
+                        </button>
+                      )}
+                      {timeLeft > 0 && activities[primeIdx]?.duration && (
+                        <button onClick={() => {
+                          setIsPaused(e => {
+                            if (e) {
+                              setActivityEndTime(Date.now() + timeLeft);
+                            }
+                            return !e
+                          })
+                        }}>{isPaused ? (
+                          <>
+                            <Play size="sm" />
+                          </>
+                        ) : (
+                          <>
+                            <Pause size="sm" />
+                          </>
+                        )}</button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </>
             )}
