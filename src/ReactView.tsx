@@ -142,14 +142,23 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
       <div className="view-content">
         {activities ? (
           <>
-            {activities[primeIdx]?.duration && (
-              <div className="timer-progress-bar-container">
-                <div
-                  className="timer-progress-bar"
-                  style={{ width: (timeLeft / activities[primeIdx].duration) * 100 + "%" }}
-                />
-              </div>
-            )}
+            {/* Header */}
+            <div className="timer-progress-bar-container">
+              {activities[primeIdx]?.duration && (
+                <div style={{ backgroundColor: "var(--background-modifier-border)", width: '100%', height: 20 }}>
+                  <div
+                    className="timer-progress-bar"
+                    style={{ width: (timeLeft / activities[primeIdx].duration) * 100 + "%" }}
+                  />
+                </div>
+              )}
+              {timeLeft === 0 && (
+                <div style={{ padding: 10 }}>
+                  <button onClick={handleNextActivity}>Next Activity ({primeIdx + 1 + "/" + (activities.length)})</button>
+                </div>
+              )}
+            </div>
+            {/* Main Content */}
             <div className="timer-container">
               {activities?.[primeIdx] && (
                 <div>
@@ -183,11 +192,6 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
                       )}
                     </div>
                   )}
-                </div>
-              )}
-              {timeLeft === 0 && (
-                <div className="next-activity-container">
-                  <button onClick={handleNextActivity}>Next Activity</button>
                 </div>
               )}
             </div>
