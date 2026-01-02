@@ -89,6 +89,14 @@
   font-weight: bold;
   font-variant-numeric: tabular-nums;
   color: var(--text-normal);
+  padding: 10px;
+  border-radius: 5px;
+  border-width: var(--border-width);
+  background-color: var(--color-base-00)
+}
+
+.timer-display:hover {
+  box-shadow: 2px 2px 2px var(--interactive-accent);
 }
 
 .timer-controls {
