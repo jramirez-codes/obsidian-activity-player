@@ -75,7 +75,6 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
   }, [content]);
 
   const [activityEndTime, setActivityEndTime] = React.useState<number | null>(null);
-  const [activityStartTime, setActivityStartTime] = React.useState<number | null>(null);
   const [timeLeft, setTimeLeft] = React.useState<number>(0);
   const [isPaused, setIsPaused] = React.useState<boolean>(false);
 
@@ -104,12 +103,13 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
     return () => clearInterval(interval);
   }, [activityEndTime, isPaused]);
 
-  React.useEffect(() => {
+
+  const resetTimer = React.useCallback(() => {
     // Reset timer when switching activities
     setActivityEndTime(null);
     setTimeLeft(0);
     setIsPaused(false);
-  }, [primeIdx]);
+  }, [])
 
   const handleNextActivity = () => {
     if (activities && primeIdx >= 0 && primeIdx < activities.length) {
@@ -129,6 +129,7 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
           setPrimeIdx(primeIdx + 1);
         }
       }
+      resetTimer()
     }
   };
 
@@ -144,7 +145,7 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
               <div className="timer-progress-bar-container">
                 <div
                   className="timer-progress-bar"
-                  style={{ width: (timeLeft / ((activityEndTime ?? 0) - (activityStartTime ?? 0))) * 100 + "%" }}
+                  style={{ width: (timeLeft / activities[primeIdx].duration) * 100 + "%" }}
                 />
               </div>
             )}
@@ -156,18 +157,15 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
                     <div className="timer-display-container">
                       {timeLeft > 0 ? (
                         <>
-                          <div className="timer-display">
-                            {formatTime(timeLeft)}
-                          </div>
-                          <div className="timer-controls" style={{ marginTop: '10px' }}>
-                            {!isPaused ? (
-                              <button onClick={() => setIsPaused(true)}>Pause</button>
-                            ) : (
-                              <button onClick={() => {
-                                setIsPaused(false);
+                          <div onClick={() => {
+                            setIsPaused(e => {
+                              if (e) {
                                 setActivityEndTime(Date.now() + timeLeft);
-                              }}>Resume</button>
-                            )}
+                              }
+                              return !e
+                            })
+                          }} className="timer-display">
+                            {formatTime(timeLeft)}
                           </div>
                         </>
                       ) : (
@@ -175,7 +173,6 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
                           <button onClick={() => {
                             // @ts-ignore
                             setActivityEndTime(Date.now() + activities[primeIdx].duration);
-                            setActivityStartTime(Date.now());
                             setIsPaused(false);
                           }}>Start Activity</button>
                         </div>
