@@ -105,17 +105,18 @@ export const ReactView = ({ content, fileName }: ReactViewProps) => {
       <div className="view-content">
         {activities ? (
           <>
-            {JSON.stringify(activities)}
-            <div style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
-              <div style={{ width: "100%", height: "20px", backgroundColor: "var(--interactive-accent)" }} />
-            </div>
+            {activities[primeIdx]?.duration && (
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
+                <div style={{ width: "100%", height: "20px", backgroundColor: "var(--interactive-accent)" }} />
+              </div>
+            )}
             <div style={{ width: "100%", height: "90vh", overflow: "auto", position: "relative" }}>
               {activities?.[primeIdx] && (
                 <div>
                   <h1 style={{ textAlign: "center" }}>{activities[primeIdx].name}</h1>
                 </div>
               )}
-              <div style={{ width: "100%", display: "flex", justifyContent: "end", position: "absolute", bottom: 0, left: 0, right: 0 }}>
+              <div style={{ width: "100%", display: "flex", justifyContent: "end", position: "fixed", bottom: 0, right: 0, paddingBottom: "40px", paddingRight: "20px" }}>
                 <button onClick={() => {
                   if (primeIdx < activities.length - 1) {
                     setPrimeIdx(primeIdx + 1);
