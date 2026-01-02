@@ -158,6 +158,9 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
     }
   };
 
+  const prevActivity = activities && primeIdx > 0 ? activities[primeIdx - 1] : null;
+  const nextActivity = activities && primeIdx < activities.length - 1 ? activities[primeIdx + 1] : null;
+
   return (
     <div className="obsidian-react-view">
       <div className="view-header">
@@ -215,6 +218,24 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
                       <h1 className="timer-activity-name">{activities[primeIdx].name}</h1>
                     </div>
                   )}
+                </div>
+                <div className="activity-nav-container">
+                  <div className="activity-nav-item">
+                    {prevActivity && (
+                      <>
+                        <span className="activity-nav-label">Previous</span>
+                        <span className="activity-nav-name">{prevActivity.name}</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="activity-nav-item next">
+                    {nextActivity && (
+                      <>
+                        <span className="activity-nav-label">Next</span>
+                        <span className="activity-nav-name">{nextActivity.name}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </>
             )}
