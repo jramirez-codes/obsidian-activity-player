@@ -183,7 +183,7 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
                       />
                     </div>
                   )}
-                  <div style={{ padding: 10, zIndex: 1000 }}>
+                  <div style={{ padding: 10, zIndex: 1000, position: 'relative' }}>
                     {activityComplete && (
                       <button onClick={handleNextActivity}>Next Activity ({primeIdx + 1 + "/" + (activities.length)})</button>
                     )}
