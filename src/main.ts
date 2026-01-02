@@ -8,7 +8,7 @@ const VIEW_TYPE_REACT = 'react-view';
 class MyReactView extends ItemView {
   root: Root | null = null;
   currentContent: string | null = null;
-  currentFileName: string | null = null;
+  currentFile: TFile | null = null;
 
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
@@ -39,9 +39,9 @@ class MyReactView extends ItemView {
     this.root?.unmount();
   }
 
-  updateContent(content: string | null, fileName: string | null) {
+  updateContent(content: string | null, file: TFile | null) {
     this.currentContent = content;
-    this.currentFileName = fileName;
+    this.currentFile = file;
     this.renderReact();
   }
 
@@ -49,9 +49,37 @@ class MyReactView extends ItemView {
     this.root?.render(
       React.createElement(ReactView, {
         content: this.currentContent,
-        fileName: this.currentFileName
+        fileName: this.currentFile?.basename || null,
+        onActivityComplete: this.handleActivityComplete.bind(this)
       })
     );
+  }
+
+  private async handleActivityComplete(lineIdx: number) {
+    if (!this.currentFile || !this.currentContent) return;
+
+    const lines = this.currentContent.split('\n');
+    if (lineIdx < 0 || lineIdx >= lines.length) return;
+
+    const line = lines?.[lineIdx] || '';
+    // Replace [ ] with [x]
+    // Regex matches: start of line, optional whitespace, dash or star, optional whitespace, [ ], optional whitespace
+    const updatedLine = line.replace(/^(\s*[-*]\s*)\[\s*\]/, '$1[x]');
+
+    if (line !== updatedLine) {
+      lines[lineIdx] = updatedLine;
+      const newContent = lines.join('\n');
+
+      // Optimistic update
+      this.currentContent = newContent;
+      this.renderReact();
+
+      try {
+        await this.app.vault.modify(this.currentFile, newContent);
+      } catch (e) {
+        console.error("Failed to update activity completion", e);
+      }
+    }
   }
 }
 
@@ -83,7 +111,7 @@ export default class MyPlugin extends Plugin {
       this.app.workspace.on('editor-change', async (editor, view) => {
         if (view instanceof MarkdownView) {
           const content = editor.getValue();
-          this.updateViewWithContent(content, view.file?.basename || 'Untitled');
+          this.updateViewWithContent(content, view.file);
         }
       })
     );
@@ -92,16 +120,16 @@ export default class MyPlugin extends Plugin {
   async updateViewFromFile(file: TFile) {
     try {
       const content = await this.app.vault.read(file);
-      this.updateViewWithContent(content, file.basename);
+      this.updateViewWithContent(content, file);
     } catch (e) {
       console.error("Failed to read file", e);
     }
   }
 
-  updateViewWithContent(content: string, basename: string) {
+  updateViewWithContent(content: string, file: TFile | null) {
     const view = this.getReactView();
     if (view) {
-      view.updateContent(content, basename);
+      view.updateContent(content, file);
     }
   }
 
@@ -149,7 +177,7 @@ export default class MyPlugin extends Plugin {
     const activeView = workspace.getActiveViewOfType(MarkdownView);
     if (activeView) {
       // Use editor value for most up to date content
-      this.updateViewWithContent(activeView.editor.getValue(), activeView.file?.basename || 'Untitled');
+      this.updateViewWithContent(activeView.editor.getValue(), activeView.file);
     }
   }
 

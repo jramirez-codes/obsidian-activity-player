@@ -3,6 +3,7 @@ import * as React from "react";
 interface ReactViewProps {
   content: string | null;
   fileName: string | null;
+  onActivityComplete?: (lineIdx: number) => void;
 }
 
 interface Activity {
@@ -10,7 +11,8 @@ interface Activity {
   name: string;
   duration?: number;
   endTime?: number;
-  completed: boolean
+  completed: boolean,
+  lineIdx: string
 }
 
 // Parse duration from format: "- [ ] 15s Rest"
@@ -40,7 +42,7 @@ function parseDuration(text: string): number | undefined {
   }
 }
 
-export const ReactView = ({ content, fileName }: ReactViewProps) => {
+export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewProps) => {
   const [primeIdx, setPrimeIdx] = React.useState<number>(-1);
   const activities: Activity[] | null = React.useMemo(() => {
     if (!content) {
@@ -54,7 +56,8 @@ export const ReactView = ({ content, fileName }: ReactViewProps) => {
     const hasActivityRegex = new RegExp(/^ *[\-*] *\[[ x|X]\]/gm)
     const hasCompletedActivityRegex = new RegExp(/^ *[\-*] *\[[x|X]\]/gm)
     const lines = content.split('\n')
-    for (const rawLine of lines) {
+    for (const lineIdx in lines) {
+      const rawLine: string = lines?.[lineIdx] || '';
       if (!hasActivity && rawLine.startsWith('# Activity')) {
         hasActivity = true;
       }
@@ -81,7 +84,8 @@ export const ReactView = ({ content, fileName }: ReactViewProps) => {
             id: activityId.toString(),
             name: name,
             duration: duration,
-            completed: completed ? true : false
+            completed: completed ? true : false,
+            lineIdx: lineIdx
           });
           activityId++;
         }
@@ -96,6 +100,27 @@ export const ReactView = ({ content, fileName }: ReactViewProps) => {
 
     return activities;
   }, [content]);
+
+  const handleNextActivity = () => {
+    if (activities && primeIdx >= 0 && primeIdx < activities.length) {
+      // Mark current activity as complete
+      const currentActivity = activities[primeIdx];
+      if (onActivityComplete && currentActivity) {
+        // Optimistically move to next activity locally
+        // Although the callback will likely trigger a prop update via file watch
+        if (primeIdx < activities.length - 1) {
+          setPrimeIdx(primeIdx + 1);
+        }
+
+        onActivityComplete(parseInt(currentActivity.lineIdx));
+      } else {
+        // Fallback behavior if no callback provided
+        if (primeIdx < activities.length - 1) {
+          setPrimeIdx(primeIdx + 1);
+        }
+      }
+    }
+  };
 
   return (
     <div className="obsidian-react-view">
@@ -117,11 +142,7 @@ export const ReactView = ({ content, fileName }: ReactViewProps) => {
                 </div>
               )}
               <div style={{ width: "100%", display: "flex", justifyContent: "end", position: "fixed", bottom: 0, right: 0, paddingBottom: "40px", paddingRight: "20px" }}>
-                <button onClick={() => {
-                  if (primeIdx < activities.length - 1) {
-                    setPrimeIdx(primeIdx + 1);
-                  }
-                }}>Next Activity</button>
+                <button onClick={handleNextActivity}>Next Activity</button>
               </div>
             </div>
           </>
