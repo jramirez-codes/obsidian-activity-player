@@ -10,10 +10,10 @@ interface Activity {
   id: string;
   name: string;
   duration?: number;
-  endTime?: number;
   completed: boolean,
   lineIdx: string
 }
+
 
 // Parse duration from format: "- [ ] 15s Rest"
 function parseDuration(text: string): number | undefined {
@@ -42,8 +42,16 @@ function parseDuration(text: string): number | undefined {
   }
 }
 
+function formatTime(ms: number): string {
+  const seconds = Math.ceil(ms / 1000);
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewProps) => {
   const [primeIdx, setPrimeIdx] = React.useState<number>(-1);
+
   const activities: Activity[] | null = React.useMemo(() => {
     if (!content) {
       return null;
@@ -70,9 +78,7 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
           const completed = rawLine.match(hasCompletedActivityRegex);
           const name = rawLine.replace(hasActivityRegex, '').trim();
           let duration = parseDuration(rawLine);
-          if (duration) {
-            duration += Date.now();
-          }
+          // Removed Date.now() addition relative to original
 
           // Mark Active Idx
           if (!completed && !hasPrimeActivity) {
@@ -100,6 +106,40 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
 
     return activities;
   }, [content]);
+
+  const [activityEndTime, setActivityEndTime] = React.useState<number | null>(null);
+  const [activityStartTime, setActivityStartTime] = React.useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = React.useState<number>(0);
+
+  React.useEffect(() => {
+    if (!activityEndTime) {
+      setTimeLeft(0);
+      return;
+    }
+    // Update immediately
+    const updateTimer = () => {
+      const now = Date.now();
+      const remaining = Math.max(0, activityEndTime - now);
+      setTimeLeft(remaining);
+      return remaining;
+    };
+
+    updateTimer();
+
+    const interval = setInterval(() => {
+      const remaining = updateTimer();
+      if (remaining <= 0) {
+        clearInterval(interval);
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  }, [activityEndTime]);
+
+  React.useEffect(() => {
+    // Reset timer when switching activities
+    setActivityEndTime(null);
+    setTimeLeft(0);
+  }, [primeIdx]);
 
   const handleNextActivity = () => {
     if (activities && primeIdx >= 0 && primeIdx < activities.length) {
@@ -132,18 +172,35 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
           <>
             {activities[primeIdx]?.duration && (
               <div style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
-                <div style={{ width: "100%", height: "20px", backgroundColor: "var(--interactive-accent)" }} />
+                <div style={{ width: (timeLeft / ((activityEndTime ?? 0) - (activityStartTime ?? 0))) * 100 + "%", height: "20px", backgroundColor: "var(--interactive-accent)" }} />
               </div>
             )}
-            <div style={{ width: "100%", height: "90vh", overflow: "auto", position: "relative" }}>
+            <div style={{ width: '100%', height: "90vh", overflow: "auto", position: "relative", justifyContent: "center" }}>
               {activities?.[primeIdx] && (
                 <div>
                   <h1 style={{ textAlign: "center" }}>{activities[primeIdx].name}</h1>
+                  {activities[primeIdx].duration && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                      {timeLeft > 0 ? (
+                        <div style={{ fontSize: '2em', fontWeight: 'bold' }}>
+                          {formatTime(timeLeft)}
+                        </div>
+                      ) : (
+                        <button onClick={() => {
+                          // @ts-ignore
+                          setActivityEndTime(Date.now() + activities[primeIdx].duration);
+                          setActivityStartTime(Date.now());
+                        }}>Start Activity</button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
-              <div style={{ width: "100%", display: "flex", justifyContent: "end", position: "fixed", bottom: 0, right: 0, paddingBottom: "40px", paddingRight: "20px" }}>
-                <button onClick={handleNextActivity}>Next Activity</button>
-              </div>
+              {timeLeft === 0 && (
+                <div style={{ width: "100%", display: "flex", justifyContent: "end", position: "fixed", bottom: 0, right: 0, paddingBottom: "40px", paddingRight: "20px" }}>
+                  <button onClick={handleNextActivity}>Next Activity</button>
+                </div>
+              )}
             </div>
           </>
         ) : (
