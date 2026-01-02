@@ -99,10 +99,6 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
 
     updateTimer();
 
-    if (activities?.[primeIdx]?.duration) {
-      setActivityComplete(false)
-    }
-
     const interval = setInterval(() => {
       if (isPaused) return;
       const remaining = updateTimer();
@@ -115,6 +111,16 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
     return () => clearInterval(interval);
   }, [activityEndTime, isPaused]);
 
+  React.useEffect(() => {
+    if (activities?.[primeIdx]?.duration) {
+      setActivityComplete(false)
+    }
+    else {
+      setActivityComplete(true)
+    }
+
+  }, [primeIdx])
+
 
   const resetTimer = React.useCallback(() => {
     // Reset timer when switching activities
@@ -124,7 +130,6 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
   }, [])
 
   const handleNextActivity = () => {
-    setActivityComplete(true)
     if (activities && primeIdx >= 0 && primeIdx < activities.length) {
       // Mark current activity as complete
       const currentActivity = activities[primeIdx];
@@ -206,13 +211,19 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
                               </div>
                             </>
                           ) : (
-                            <div className="timer-controls">
-                              <button onClick={() => {
-                                // @ts-ignore
-                                setActivityEndTime(Date.now() + activities[primeIdx].duration);
-                                setIsPaused(false);
-                              }}>Start Activity</button>
-                            </div>
+                            <>
+                              {!activityComplete &&
+                                (
+                                  <div className="timer-controls">
+                                    <button onClick={() => {
+                                      // @ts-ignore
+                                      setActivityEndTime(Date.now() + activities[primeIdx].duration);
+                                      setIsPaused(false);
+                                    }}>Start Activity</button>
+                                  </div>
+                                )
+                              }
+                            </>
                           )}
                         </div>
                       )}
