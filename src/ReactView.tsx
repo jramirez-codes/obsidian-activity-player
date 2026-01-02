@@ -1,4 +1,6 @@
 import * as React from "react";
+import { parseDuration } from "./lib/parseDuration";
+import { formatTime } from "./lib/formatTime";
 
 interface ReactViewProps {
   content: string | null;
@@ -12,41 +14,6 @@ interface Activity {
   duration?: number;
   completed: boolean,
   lineIdx: string
-}
-
-
-// Parse duration from format: "- [ ] 15s Rest"
-function parseDuration(text: string): number | undefined {
-  // Match pattern: optional "- [ ]" followed by number and time unit
-  const match = text.match(/(?:-\s*\[\s*\]\s*)?(\d+)\s*([smh])/i);
-
-  if (!match) {
-    return undefined;
-  }
-
-  // @ts-ignore
-  const value = parseInt(match[1], 10);
-  // @ts-ignore
-  const unit = match[2].toLowerCase();
-
-  // Convert to milliseconds
-  switch (unit) {
-    case 's':
-      return value * 1000;
-    case 'm':
-      return value * 60 * 1000;
-    case 'h':
-      return value * 3600 * 1000;
-    default:
-      return undefined;
-  }
-}
-
-function formatTime(ms: number): string {
-  const seconds = Math.ceil(ms / 1000);
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewProps) => {
@@ -171,33 +138,38 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
         {activities ? (
           <>
             {activities[primeIdx]?.duration && (
-              <div style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
-                <div style={{ width: (timeLeft / ((activityEndTime ?? 0) - (activityStartTime ?? 0))) * 100 + "%", height: "20px", backgroundColor: "var(--interactive-accent)" }} />
+              <div className="timer-progress-bar-container">
+                <div
+                  className="timer-progress-bar"
+                  style={{ width: (timeLeft / ((activityEndTime ?? 0) - (activityStartTime ?? 0))) * 100 + "%" }}
+                />
               </div>
             )}
-            <div style={{ width: '100%', height: "90vh", overflow: "auto", position: "relative", justifyContent: "center" }}>
+            <div className="timer-container">
               {activities?.[primeIdx] && (
                 <div>
-                  <h1 style={{ textAlign: "center" }}>{activities[primeIdx].name}</h1>
+                  <h1 className="timer-activity-name">{activities[primeIdx].name}</h1>
                   {activities[primeIdx].duration && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                    <div className="timer-display-container">
                       {timeLeft > 0 ? (
-                        <div style={{ fontSize: '2em', fontWeight: 'bold' }}>
+                        <div className="timer-display">
                           {formatTime(timeLeft)}
                         </div>
                       ) : (
-                        <button onClick={() => {
-                          // @ts-ignore
-                          setActivityEndTime(Date.now() + activities[primeIdx].duration);
-                          setActivityStartTime(Date.now());
-                        }}>Start Activity</button>
+                        <div className="timer-controls">
+                          <button onClick={() => {
+                            // @ts-ignore
+                            setActivityEndTime(Date.now() + activities[primeIdx].duration);
+                            setActivityStartTime(Date.now());
+                          }}>Start Activity</button>
+                        </div>
                       )}
                     </div>
                   )}
                 </div>
               )}
               {timeLeft === 0 && (
-                <div style={{ width: "100%", display: "flex", justifyContent: "end", position: "fixed", bottom: 0, right: 0, paddingBottom: "40px", paddingRight: "20px" }}>
+                <div className="next-activity-container">
                   <button onClick={handleNextActivity}>Next Activity</button>
                 </div>
               )}
