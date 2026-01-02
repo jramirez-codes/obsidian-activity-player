@@ -80,6 +80,7 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
   }, [activities]);
 
   const [activityEndTime, setActivityEndTime] = React.useState<number | null>(null);
+  const [activityComplete, setActivityComplete] = React.useState(false)
   const [timeLeft, setTimeLeft] = React.useState<number>(0);
   const [isPaused, setIsPaused] = React.useState<boolean>(false);
 
@@ -98,11 +99,16 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
 
     updateTimer();
 
+    if (activities?.[primeIdx]?.duration) {
+      setActivityComplete(false)
+    }
+
     const interval = setInterval(() => {
       if (isPaused) return;
       const remaining = updateTimer();
       if (remaining <= 0) {
         resetTimer()
+        setActivityComplete(true)
         clearInterval(interval);
       }
     }, 100);
@@ -118,6 +124,7 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
   }, [])
 
   const handleNextActivity = () => {
+    setActivityComplete(true)
     if (activities && primeIdx >= 0 && primeIdx < activities.length) {
       // Mark current activity as complete
       const currentActivity = activities[primeIdx];
@@ -155,7 +162,7 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
         {activities ? (
           <>
             {allCompleted ? (
-              <div className="all-completed-container">
+              <div style={{ textAlign: 'center' }}>
                 <h2>All activities completed!</h2>
                 <button onClick={handleReset}>Reset Activities</button>
               </div>
@@ -171,11 +178,9 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
                       />
                     </div>
                   )}
-                  {timeLeft === 0 && (
-                    <div style={{ padding: 10 }}>
-                      <button onClick={handleNextActivity}>Next Activity ({primeIdx + 1 + "/" + (activities.length)})</button>
-                    </div>
-                  )}
+                  <div style={{ padding: 10 }}>
+                    <button disabled={!activityComplete} onClick={handleNextActivity}>Next Activity ({primeIdx + 1 + "/" + (activities.length)})</button>
+                  </div>
                 </div>
                 {/* Main Content */}
                 <div className="timer-container">
