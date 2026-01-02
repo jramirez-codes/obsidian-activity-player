@@ -174,17 +174,38 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
             ) : (
               <>
                 {/* Header */}
-                <div className="timer-progress-bar-container">
+                <div className="timer-progress-bar-container" style={{ position: 'relative' }}>
                   {activities[primeIdx]?.duration && (
-                    <div style={{ backgroundColor: "var(--background-modifier-border)", width: '100%', height: 20 }}>
+                    <div style={{ width: '100%', height: '100%', position: 'absolute', zIndex: 10, top: 0 }}>
                       <div
                         className="timer-progress-bar"
                         style={{ width: (timeLeft / activities[primeIdx].duration) * 100 + "%" }}
                       />
                     </div>
                   )}
-                  <div style={{ padding: 10 }}>
-                    <button disabled={!activityComplete} onClick={handleNextActivity}>Next Activity ({primeIdx + 1 + "/" + (activities.length)})</button>
+                  <div style={{ padding: 10, zIndex: 1000 }}>
+                    {activityComplete && (
+                      <button onClick={handleNextActivity}>Next Activity ({primeIdx + 1 + "/" + (activities.length)})</button>
+                    )}
+                    {timeLeft === 0 && activities[primeIdx]?.duration && (
+                      <button onClick={() => {
+                        // @ts-ignore
+                        setActivityEndTime(Date.now() + activities[primeIdx].duration);
+                        setIsPaused(false);
+                      }}>Start Activity</button>
+                    )}
+                    {timeLeft > 0 && (
+                      <button onClick={() => {
+                        setIsPaused(e => {
+                          if (e) {
+                            setActivityEndTime(Date.now() + timeLeft);
+                          }
+                          return !e
+                        })
+                      }} >
+                        {formatTime(timeLeft)}
+                      </button>
+                    )}
                   </div>
                 </div>
                 {/* Main Content */}
@@ -239,6 +260,6 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };
