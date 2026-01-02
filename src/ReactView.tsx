@@ -13,6 +13,33 @@ interface Activity {
   completed: boolean
 }
 
+// Parse duration from format: "- [ ] 15s Rest"
+function parseDuration(text: string): number | undefined {
+  // Match pattern: optional "- [ ]" followed by number and time unit
+  const match = text.match(/(?:-\s*\[\s*\]\s*)?(\d+)\s*([smh])/i);
+
+  if (!match) {
+    return undefined;
+  }
+
+  // @ts-ignore
+  const value = parseInt(match[1], 10);
+  // @ts-ignore
+  const unit = match[2].toLowerCase();
+
+  // Convert to milliseconds
+  switch (unit) {
+    case 's':
+      return value * 1000;
+    case 'm':
+      return value * 60 * 1000;
+    case 'h':
+      return value * 3600 * 1000;
+    default:
+      return undefined;
+  }
+}
+
 export const ReactView = ({ content, fileName }: ReactViewProps) => {
   const [primeIdx, setPrimeIdx] = React.useState<number>(-1);
   const activities: Activity[] | null = React.useMemo(() => {
@@ -32,11 +59,17 @@ export const ReactView = ({ content, fileName }: ReactViewProps) => {
         hasActivity = true;
       }
       else if (hasActivity) {
-        const line = rawLine.replace(/[^a-zA-Z0-9 \-\[\]]/g, '');;
+        const line = rawLine.replace(/[^a-zA-Z0-9 \-\[\]]/g, '');
+        const testLine = hasActivityRegex.test(line);
         // Is Valid Activity
-        if (hasActivityRegex.test(line)) {
+        if (testLine) {
+          // Parse Out Fields
           const completed = hasCompletedActivityRegex.test(line);
           const name = line.replace("- ", "").replace("[x]", "").replace("[ ]", "").trim();
+          let duration = parseDuration(line);
+          if (duration) {
+            duration += Date.now();
+          }
 
           // Mark Active Idx
           if (!completed && !hasPrimeActivity) {
@@ -47,7 +80,7 @@ export const ReactView = ({ content, fileName }: ReactViewProps) => {
           activities.push({
             id: activityId.toString(),
             name: name,
-            duration: undefined,
+            duration: duration,
             completed: completed
           });
           activityId++;
@@ -56,15 +89,13 @@ export const ReactView = ({ content, fileName }: ReactViewProps) => {
           return activities
         }
         else {
-          console.log("Invalid Activity: " + line, hasActivityRegex.test(line))
+          console.log("Invalid Activity: " + line, testLine)
         }
       }
     }
 
     return activities;
   }, [content]);
-
-  console.log(primeIdx)
 
   return (
     <div className="obsidian-react-view">
@@ -75,13 +106,22 @@ export const ReactView = ({ content, fileName }: ReactViewProps) => {
         {activities ? (
           <>
             {JSON.stringify(activities)}
-            <div style={{ width: "100%", height: "100vh", overflow: "auto", position: "relative" }}>
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
+              <div style={{ width: "100%", height: "20px", backgroundColor: "var(--interactive-accent)" }} />
+            </div>
+            <div style={{ width: "100%", height: "90vh", overflow: "auto", position: "relative" }}>
               {activities?.[primeIdx] && (
-                <>
-                  <p>{activities[primeIdx].name}</p>
-                  <p>{activities[primeIdx].duration}</p>
-                </>
+                <div>
+                  <h1 style={{ textAlign: "center" }}>{activities[primeIdx].name}</h1>
+                </div>
               )}
+              <div style={{ width: "100%", display: "flex", justifyContent: "end", position: "absolute", bottom: 0, left: 0, right: 0 }}>
+                <button onClick={() => {
+                  if (primeIdx < activities.length - 1) {
+                    setPrimeIdx(primeIdx + 1);
+                  }
+                }}>Next Activity</button>
+              </div>
             </div>
           </>
         ) : (

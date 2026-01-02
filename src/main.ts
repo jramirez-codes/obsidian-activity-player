@@ -19,11 +19,11 @@ class MyReactView extends ItemView {
   }
 
   getDisplayText() {
-    return 'React View';
+    return 'Activity Player';
   }
 
   getIcon() {
-    return 'document-text';
+    return 'rocket';
   }
 
   async onOpen() {
