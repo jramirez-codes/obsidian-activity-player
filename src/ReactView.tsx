@@ -1,6 +1,7 @@
 import * as React from "react";
 import { parseDuration } from "./lib/parseDuration";
 import { formatTime } from "./lib/formatTime";
+import { Play, Pause } from "lucide-react";
 
 interface ReactViewProps {
   content: string | null;
@@ -186,7 +187,7 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
                       />
                     </div>
                   )}
-                  <div style={{ padding: 10, zIndex: 1000, position: 'relative' }}>
+                  <div style={{ padding: 10, zIndex: 1000, position: 'relative', display: 'flex', justifyContent: 'space-between' }}>
                     {activityComplete && (
                       <button onClick={handleNextActivity}>Next Activity ({primeIdx + 1 + "/" + (activities.length)})</button>
                     )}
@@ -209,15 +210,25 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
                         {formatTime(timeLeft)}
                       </button>
                     )}
+                    {timeLeft > 0 && activities[primeIdx]?.duration && (
+                      <button onClick={() => {
+                        setIsPaused(e => {
+                          if (e) {
+                            setActivityEndTime(Date.now() + timeLeft);
+                          }
+                          return !e
+                        })
+                      }}>{isPaused ? (
+                        <>
+                          <Play size="sm" />
+                        </>
+                      ) : (
+                        <>
+                          <Pause size="sm" />
+                        </>
+                      )}</button>
+                    )}
                   </div>
-                </div>
-                {/* Main Content */}
-                <div className="content-container">
-                  {activities?.[primeIdx] && (
-                    <div>
-                      <h1 className="timer-activity-name">{activities[primeIdx].name}</h1>
-                    </div>
-                  )}
                 </div>
                 <div className="activity-nav-container">
                   <div className="activity-nav-item">
@@ -236,6 +247,14 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
                       </>
                     )}
                   </div>
+                </div>
+                {/* Main Content */}
+                <div className="content-container">
+                  {activities?.[primeIdx] && (
+                    <div>
+                      <h1 className="timer-activity-name">{activities[primeIdx].name}</h1>
+                    </div>
+                  )}
                 </div>
               </>
             )}
