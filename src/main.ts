@@ -50,7 +50,8 @@ class MyReactView extends ItemView {
       React.createElement(ReactView, {
         content: this.currentContent,
         fileName: this.currentFile?.basename || null,
-        onActivityComplete: this.handleActivityComplete.bind(this)
+        onActivityComplete: this.handleActivityComplete.bind(this),
+        onReset: this.handleActivityReset.bind(this)
       })
     );
   }
@@ -78,6 +79,38 @@ class MyReactView extends ItemView {
         await this.app.vault.modify(this.currentFile, newContent);
       } catch (e) {
         console.error("Failed to update activity completion", e);
+      }
+    }
+  }
+
+  private async handleActivityReset() {
+    if (!this.currentFile || !this.currentContent) return;
+
+    const lines = this.currentContent.split('\n');
+    let hasChanges = false;
+
+    // Regex for completed activity: start of line, optional whitespace, dash or star, optional whitespace, [x] or [X], optional whitespace
+    const completedActivityRegex = /^(\s*[-*]\s*)\[[xX]\]/;
+
+    const newLines = lines.map(line => {
+      if (completedActivityRegex.test(line)) {
+        hasChanges = true;
+        return line.replace(completedActivityRegex, '$1[ ]');
+      }
+      return line;
+    });
+
+    if (hasChanges) {
+      const newContent = newLines.join('\n');
+
+      // Optimistic update
+      this.currentContent = newContent;
+      this.renderReact();
+
+      try {
+        await this.app.vault.modify(this.currentFile, newContent);
+      } catch (e) {
+        console.error("Failed to reset activities", e);
       }
     }
   }

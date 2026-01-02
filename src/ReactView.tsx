@@ -6,6 +6,7 @@ interface ReactViewProps {
   content: string | null;
   fileName: string | null;
   onActivityComplete?: (lineIdx: number) => void;
+  onReset?: () => void;
 }
 
 interface Activity {
@@ -16,7 +17,7 @@ interface Activity {
   lineIdx: string
 }
 
-export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewProps) => {
+export const ReactView = ({ content, fileName, onActivityComplete, onReset }: ReactViewProps) => {
   const [primeIdx, setPrimeIdx] = React.useState<number>(-1);
 
   const activities: Activity[] | null = React.useMemo(() => {
@@ -73,6 +74,10 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
 
     return activities;
   }, [content]);
+
+  const allCompleted = React.useMemo(() => {
+    return activities && activities.length > 0 && activities.every(a => a.completed);
+  }, [activities]);
 
   const [activityEndTime, setActivityEndTime] = React.useState<number | null>(null);
   const [timeLeft, setTimeLeft] = React.useState<number>(0);
@@ -134,6 +139,13 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
     }
   };
 
+  const handleReset = () => {
+    if (onReset) {
+      onReset();
+      setPrimeIdx(0);
+    }
+  };
+
   return (
     <div className="obsidian-react-view">
       <div className="view-header">
@@ -142,59 +154,68 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
       <div className="view-content">
         {activities ? (
           <>
-            {/* Header */}
-            <div className="timer-progress-bar-container">
-              {activities[primeIdx]?.duration && (
-                <div style={{ backgroundColor: "var(--background-modifier-border)", width: '100%', height: 20 }}>
-                  <div
-                    className="timer-progress-bar"
-                    style={{ width: (timeLeft / activities[primeIdx].duration) * 100 + "%" }}
-                  />
+            {allCompleted ? (
+              <div className="all-completed-container">
+                <h2>All activities completed!</h2>
+                <button onClick={handleReset}>Reset Activities</button>
+              </div>
+            ) : (
+              <>
+                {/* Header */}
+                <div className="timer-progress-bar-container">
+                  {activities[primeIdx]?.duration && (
+                    <div style={{ backgroundColor: "var(--background-modifier-border)", width: '100%', height: 20 }}>
+                      <div
+                        className="timer-progress-bar"
+                        style={{ width: (timeLeft / activities[primeIdx].duration) * 100 + "%" }}
+                      />
+                    </div>
+                  )}
+                  {timeLeft === 0 && (
+                    <div style={{ padding: 10 }}>
+                      <button onClick={handleNextActivity}>Next Activity ({primeIdx + 1 + "/" + (activities.length)})</button>
+                    </div>
+                  )}
                 </div>
-              )}
-              {timeLeft === 0 && (
-                <div style={{ padding: 10 }}>
-                  <button onClick={handleNextActivity}>Next Activity ({primeIdx + 1 + "/" + (activities.length)})</button>
-                </div>
-              )}
-            </div>
-            {/* Main Content */}
-            <div className="timer-container">
-              {activities?.[primeIdx] && (
-                <div>
-                  <h1 className="timer-activity-name">{activities[primeIdx].name}</h1>
-                  {activities[primeIdx].duration && (
-                    <div className="timer-display-container">
-                      {timeLeft > 0 ? (
-                        <>
-                          <div onClick={() => {
-                            setIsPaused(e => {
-                              if (e) {
-                                setActivityEndTime(Date.now() + timeLeft);
-                              }
-                              return !e
-                            })
-                          }} className="timer-display">
-                            {formatTime(timeLeft)}
-                            {isPaused && (
-                              < div className="play-pause" />
-                            )}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="timer-controls">
-                          <button onClick={() => {
-                            // @ts-ignore
-                            setActivityEndTime(Date.now() + activities[primeIdx].duration);
-                            setIsPaused(false);
-                          }}>Start Activity</button>
+                {/* Main Content */}
+                <div className="timer-container">
+                  {activities?.[primeIdx] && (
+                    <div>
+                      <h1 className="timer-activity-name">{activities[primeIdx].name}</h1>
+                      {activities[primeIdx].duration && (
+                        <div className="timer-display-container">
+                          {timeLeft > 0 ? (
+                            <>
+                              <div onClick={() => {
+                                setIsPaused(e => {
+                                  if (e) {
+                                    setActivityEndTime(Date.now() + timeLeft);
+                                  }
+                                  return !e
+                                })
+                              }} className="timer-display">
+                                {formatTime(timeLeft)}
+                                {isPaused && (
+                                  <div className="play-pause" />
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="timer-controls">
+                              <button onClick={() => {
+                                // @ts-ignore
+                                setActivityEndTime(Date.now() + activities[primeIdx].duration);
+                                setIsPaused(false);
+                              }}>Start Activity</button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </>
         ) : (
           <div className="empty-state">
