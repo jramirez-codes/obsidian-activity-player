@@ -170,6 +170,13 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
       <div className="view-content">
         <div style={{ justifyContent: 'space-between', display: 'flex', alignItems: 'center' }}>
           <h1>Activity Player</h1>
+          {timeLeft === 0 && activities && activities[primeIdx]?.duration && !activityComplete && (
+            <button onClick={() => {
+              // @ts-ignore
+              setActivityEndTime(Date.now() + activities[primeIdx].duration);
+              setIsPaused(false);
+            }}>Start Activity</button>
+          )}
           {activityComplete && activities && primeIdx < (activities.length) && (
             <button onClick={() => {
               if (activityComplete) {
@@ -229,13 +236,6 @@ export const ReactView = ({ content, fileName, onActivityComplete, onReset }: Re
                         </div>
                       )}
                       <div style={{ padding: 10, zIndex: 1000, position: 'relative', display: 'flex', justifyContent: 'space-between' }}>
-                        {timeLeft === 0 && activities[primeIdx]?.duration && !activityComplete && (
-                          <button onClick={() => {
-                            // @ts-ignore
-                            setActivityEndTime(Date.now() + activities[primeIdx].duration);
-                            setIsPaused(false);
-                          }}>Start Activity</button>
-                        )}
                         {timeLeft > 0 && (
                           <button onClick={() => {
                             setIsPaused(e => {
