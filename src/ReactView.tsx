@@ -97,6 +97,7 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
       if (isPaused) return;
       const remaining = updateTimer();
       if (remaining <= 0) {
+        resetTimer()
         clearInterval(interval);
       }
     }, 100);
@@ -166,6 +167,9 @@ export const ReactView = ({ content, fileName, onActivityComplete }: ReactViewPr
                             })
                           }} className="timer-display">
                             {formatTime(timeLeft)}
+                            {isPaused && (
+                              < div className="play-pause" />
+                            )}
                           </div>
                         </>
                       ) : (
