@@ -9,11 +9,12 @@ interface Activity {
   id: string;
   name: string;
   duration?: number;
+  endTime?: number;
   completed: boolean
 }
 
 export const ReactView = ({ content, fileName }: ReactViewProps) => {
-
+  const [primeIdx, setPrimeIdx] = React.useState<number>(-1);
   const activities: Activity[] | null = React.useMemo(() => {
     if (!content) {
       return null;
@@ -22,6 +23,7 @@ export const ReactView = ({ content, fileName }: ReactViewProps) => {
     let hasActivity = false;
     let activityId = 0;
     let activities: Activity[] = [];
+    let hasPrimeActivity = false;
     const hasActivityRegex = new RegExp(/^ *- *\[[\ |x|X]\]/gm)
     const hasCompletedActivityRegex = new RegExp(/^ *- *\[[x|X]\]/gm)
     const lines = content.split('\n')
@@ -32,9 +34,16 @@ export const ReactView = ({ content, fileName }: ReactViewProps) => {
       else if (hasActivity) {
         const line = rawLine.replace(/[^a-zA-Z0-9 \-\[\]]/g, '');;
         // Is Valid Activity
-        if (!hasActivityRegex.test(line)) {
+        if (hasActivityRegex.test(line)) {
           const completed = hasCompletedActivityRegex.test(line);
           const name = line.replace("- ", "").replace("[x]", "").replace("[ ]", "").trim();
+
+          // Mark Active Idx
+          if (!completed && !hasPrimeActivity) {
+            hasPrimeActivity = true;
+            setPrimeIdx(activityId);
+          }
+
           activities.push({
             id: activityId.toString(),
             name: name,
@@ -55,7 +64,7 @@ export const ReactView = ({ content, fileName }: ReactViewProps) => {
     return activities;
   }, [content]);
 
-
+  console.log(primeIdx)
 
   return (
     <div className="obsidian-react-view">
@@ -65,8 +74,14 @@ export const ReactView = ({ content, fileName }: ReactViewProps) => {
       <div className="view-content">
         {activities ? (
           <>
+            {JSON.stringify(activities)}
             <div style={{ width: "100%", height: "100vh", overflow: "auto", position: "relative" }}>
-              {JSON.stringify(activities)}
+              {activities?.[primeIdx] && (
+                <>
+                  <p>{activities[primeIdx].name}</p>
+                  <p>{activities[primeIdx].duration}</p>
+                </>
+              )}
             </div>
           </>
         ) : (
